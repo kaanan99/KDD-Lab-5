@@ -6,6 +6,7 @@ import sklearn.feature_extraction.text as sktext
 
 def parseVectorizerArgs(args):
     # if there are not 2 arguments then error
+    # TODO: further input validation and error handling??
     if len(args) != 2:
         print("Error:")
         print("Usage: python3 textVectorizer.py <directory_path> <output_name>")
@@ -13,7 +14,9 @@ def parseVectorizerArgs(args):
     return args[0], args[1]
 
 def createGroundTruth(dataset_path, output_path):
+    # list of document paths
     documents = []
+    # iterate over dataset_path directory and create ground truth .csv file
     with open(output_path + '.csv', 'w') as output_file:
         output_file.write('file_name,author\n')
         for dir in os.listdir(dataset_path):
@@ -25,20 +28,26 @@ def createGroundTruth(dataset_path, output_path):
     return documents
 
 if __name__ == '__main__':
+    # dataset_path: name of directory
+    # output_path: name of output file (without .csv extension)
+    # documents: list of document paths
     dataset_path, output_path = parseVectorizerArgs(sys.argv[1:])
     documents = createGroundTruth(dataset_path, output_path)
 
 
     # --- SKLEARN VECTORIZERS (FOR COMPARISON) ---
+    # Sk Word Count Matrix
     sk_count_vectorizer = sktext.CountVectorizer(analyzer='word', input='filename')
     sk_count_wm = sk_count_vectorizer.fit_transform(documents)
     sk_count_tokens = sk_count_vectorizer.get_feature_names_out()
     sk_wm_df = pd.DataFrame(sk_count_wm.toarray(), index=documents, columns=sk_count_tokens)
 
+    # Sk tf-idf Matrix
     sk_tfidf_vectorizer = sktext.TfidfVectorizer(analyzer='word', input='filename')
     sk_tfidf_wm = sk_tfidf_vectorizer.fit_transform(documents)
     sk_tfidf_tokens = sk_tfidf_vectorizer.get_feature_names_out()
     sk_tfidf_df = pd.DataFrame(sk_tfidf_wm.toarray(), index=documents, columns=sk_tfidf_tokens)
     # ------
 
+    print(sk_wm_df)
     print(sk_tfidf_df)
