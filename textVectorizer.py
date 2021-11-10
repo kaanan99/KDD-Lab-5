@@ -4,20 +4,22 @@ import numpy as np
 import pandas as pd
 import sklearn.feature_extraction.text as sktext
 
+# TODO: further input validation and error handling??
 def parseVectorizerArgs(args):
     # if there are not 2 arguments then error
-    # TODO: further input validation and error handling??
     if len(args) != 2:
         print("Error:")
         print("Usage: python3 textVectorizer.py <directory_path> <output_name>")
         sys.exit(1)
     return args[0], args[1]
 
-def createGroundTruth(dataset_path, output_path):
+# TODO: Examine whether this is how we want to do this
+def createGroundTruth(dataset_path, output_name):
     # list of document paths
     documents = []
+    output_path = output_name + ".csv"
     # iterate over dataset_path directory and create ground truth .csv file
-    with open(output_path + '.csv', 'w') as output_file:
+    with open(output_path, 'w') as output_file:
         output_file.write('file_name,author\n')
         for dir in os.listdir(dataset_path):
             for author in os.listdir(dataset_path + '/' + dir):
@@ -25,17 +27,20 @@ def createGroundTruth(dataset_path, output_path):
                     output_file.write(file + ',' + author + '\n')
                     documents.append(dataset_path + '/' + dir + '/' + author + '/' + file)
         output_file.close()
-    return documents
+    return documents, output_path
 
 if __name__ == '__main__':
     # dataset_path: name of directory
     # output_path: name of output file (without .csv extension)
+    dataset_path, output_name = parseVectorizerArgs(sys.argv[1:])
     # documents: list of document paths
-    dataset_path, output_path = parseVectorizerArgs(sys.argv[1:])
-    documents = createGroundTruth(dataset_path, output_path)
+    # output_path: <output_name>.csv
+    documents, output_path = createGroundTruth(dataset_path, output_name)
+    ground_truth_df = pd.read_csv(output_path)
+    print(ground_truth_df)
 
-
-    # --- SKLEARN VECTORIZERS (FOR COMPARISON) ---
+    # TODO: REMOVE THESE BEFORE FINAL SUBMISSION
+    # --- SKLEARN VECTORIZERS (FOR OUR COMPARISON) ---
     # Sk Word Count Matrix
     sk_count_vectorizer = sktext.CountVectorizer(analyzer='word', input='filename')
     sk_count_wm = sk_count_vectorizer.fit_transform(documents)
@@ -48,6 +53,3 @@ if __name__ == '__main__':
     sk_tfidf_tokens = sk_tfidf_vectorizer.get_feature_names_out()
     sk_tfidf_df = pd.DataFrame(sk_tfidf_wm.toarray(), index=documents, columns=sk_tfidf_tokens)
     # ------
-
-    print(sk_wm_df)
-    print(sk_tfidf_df)
