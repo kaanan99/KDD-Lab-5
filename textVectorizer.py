@@ -37,7 +37,6 @@ if __name__ == '__main__':
     # output_path: <output_name>.csv
     documents, output_path = createGroundTruth(dataset_path, output_name)
     ground_truth_df = pd.read_csv(output_path)
-    print(ground_truth_df)
 
     # TODO: REMOVE THESE BEFORE FINAL SUBMISSION
     # --- SKLEARN VECTORIZERS (FOR OUR COMPARISON) ---
