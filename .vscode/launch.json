@@ -12,7 +12,8 @@
             "console": "integratedTerminal",
             "args": [
                 "datasets",
-                "ground_truth"
+                "ground_truth",
+                "stop_words/stopwords-short.txt"
             ]
         }
     ]
