@@ -5,6 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "RFAuthorship.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "vectors.json",
+                "cos",
+                "90"
+            ],
+            // "noDebug": true
+        },
+        {
             "name": "knnAuthorship.py",
             "type": "python",
             "request": "launch",
@@ -12,9 +25,10 @@
             "console": "integratedTerminal",
             "args": [
                 "vectors.json",
-                "okapi",
-                "5"
-            ]
+                "cos",
+                "90"
+            ],
+            "noDebug": true
         },
         {
             "name": "textVectorizer.py",
@@ -25,8 +39,9 @@
             "args": [
                 "datasets",
                 "ground_truth",
-                "stop_words/stopwords-short.txt"
-            ]
+                "stop_words/stopwords-medium.txt"
+            ],
+            "noDebug": true
         }
     ]
 }

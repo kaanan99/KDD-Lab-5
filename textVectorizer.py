@@ -12,22 +12,24 @@ import json
 class Vector:
 
     def __init__(self, word_freq, name, num_words):
-        self.word_freq = word_freq
         self.name = name
         self.author = name.split('/')[-2]
         self.num_words = num_words
         self.average_words = None
+        self.word_freq = word_freq
         self.weights = {}
 
-    def tf_idf(self, n, num_docs):
+    def to_json(self):
+        return {"name": self.name, "author": self.author,"num_words": self.num_words, 
+                "average_words": self.average_words, "word_freq": self.word_freq, 
+                "weights": self.weights}
+
+    def tf_idf(self, n, doc_appear):
         max_freq = max(self.word_freq.values())
         for word, freq in self.word_freq.items():
             tf = freq/max_freq
-            idf = math.log2(n/num_docs[word])
+            idf = math.log2(n/doc_appear[word])
             self.weights[word] = tf * idf
-
-    def to_json(self):
-        return {"name":self.name, "author": self.author,"num_words":self.num_words, "average_words": self.average_words, "word_freq": self.word_freq, "weights": self.weights}
 
     def calcDist(self, other, metric, n, doc_appear):
         if metric == 'cos':
@@ -38,23 +40,39 @@ class Vector:
     # TODO: double check this
     # TODO: MAYBE CONVERT TO LIST COMPREHENSION/NP ARRAYS
     def cosSim(self, other):
-        similarity = 0
-        numerator = 0
-        denom1 = 0
-        denom2 = 0
-        match_words = self.weights.keys() & other.weights.keys()
-        for word in match_words:
-            numerator += self.weights[word] * other.weights[word]
-            denom1 += self.weights[word] ** 2
-            denom2 += other.weights[word] ** 2
-        # for word, weight in self.weights.items():
+        #Version 3
+        return np.dot(self.weights, other.T)/(np.linalg.norm(self.weights)*np.linalg.norm(other, axis=1).T)
+        # similarity = 0
+        # numerator = 0
+        # denom1 = 0
+        # denom2 = 0
+        # for word in totalWords:
+        #     selfWeight = 0
+        #     otherWeight = 0
+        #     if word in self.weights:
+        #         selfWeight = self.weights[word]
         #     if word in other.weights:
-        #         numerator += weight * other.weights[word]
-        #         denom1 += weight ** 2
-        #         denom2 += other.weights[word] ** 2
-        denominator = math.sqrt(denom1 * denom2)
-        similarity = numerator / denominator
-        return similarity
+        #         otherWeight = other.weights[word]
+        #     numerator += selfWeight * otherWeight
+        #     denom1 += selfWeight ** 2
+        #     denom2 += otherWeight ** 2
+        # denominator = math.sqrt(denom1 * denom2)
+        # similarity = numerator / denominator
+        # return similarity
+        
+        # Original
+        # similarity = 0
+        # numerator = 0
+        # denom1 = 0
+        # denom2 = 0
+        # match_words = set(self.weights.keys()).union(set(other.weights.keys()))
+        # for word in match_words:
+        #     numerator += self.weights[word] * other.weights[word]
+        #     denom1 += self.weights[word] ** 2
+        #     denom2 += other.weights[word] ** 2
+        # denominator = math.sqrt(denom1 * denom2)
+        # similarity = numerator / denominator
+        # return similarity
     
     # TODO: MAYBE CONVERT TO LIST COMPREHENSION/NP ARRAYS
     # TODO: recheck this
@@ -64,17 +82,13 @@ class Vector:
         k2 = 500
         ok_sim = 0
         match_words = self.weights.keys() & other.weights.keys()
+        if not match_words:
+            return np.NINF
         for word in match_words:
             alt_idf_d = math.log((n - doc_appear[word] + .5) / (doc_appear[word] + .5))
             alt_tf = ((k1 + 1) * self.word_freq[word]) / (k1 * (1 - b + b * (self.num_words / self.average_words)) + self.word_freq[word])
             alt_idf_q = ((k2 + 1) * other.word_freq[word]) / (k2 + other.word_freq[word]) 
             ok_sim += (alt_idf_d * alt_tf * alt_idf_q)
-        # for word, freq in self.word_freq.items():
-        #     if word in other.word_freq:
-        #         alt_idf_d = math.log((n - doc_appear[word] + .5) / (doc_appear[word] + .5))
-        #         alt_tf = ((k1 + 1) * freq) / (k1 * (1 - b + b * (self.num_words / self.average_words)) + freq)
-        #         alt_idf_q = ((k2 + 1) * other.word_freq[word]) / (k2 + other.word_freq[word]) 
-        #         ok_sim += (alt_idf_d * alt_tf * alt_idf_q)
         return ok_sim
 
 # TODO: further input validation and error handling??
@@ -96,7 +110,7 @@ def createGroundTruth(dataset_path, output_name):
         output_file.write('file_name,author\n')
         for dir in os.listdir(dataset_path):
             for author in os.listdir(dataset_path + '/' + dir):
-                for file in os.listdir(dataset_path + '/' + dir + '/' + author)[:5]:
+                for file in os.listdir(dataset_path + '/' + dir + '/' + author): # TODO: remove this [:5]
                     output_file.write(file + ',' + author + '\n')
                     documents.append(dataset_path + '/' + dir + '/' + author + '/' + file)
         output_file.close()
@@ -110,19 +124,23 @@ def processStopWords(stop_word_path):
     return {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
 
 def getFrequencies(documents, stop_words):
-    total_freq = {}
-    doc_appear = {}
-    doc_freq = []
+    total_freq = {} # word freq across document set
+    doc_appear = {} # how many documents a word appears in
+    doc_freq = [] # list of document vectors
+    num_docs = len(documents)
     total_words = 0
     ps = nltk.PorterStemmer()
+
+    i = 1
     for file_path in documents:
         start = time.time()
-        # ------------------
+        num_words = 0
+        ind_freq = {}
+
         f = open(file_path, 'r')
         words = f.read().split()
         f.close()
-        num_words = 0
-        ind_freq = {}
+
         for word in words:
             num_words += 1
             total_words += 1
@@ -150,17 +168,17 @@ def getFrequencies(documents, stop_words):
                         doc_appear[word] += 1
                     else:
                         doc_appear[word] = 1
+
         doc_freq.append(Vector(ind_freq, file_path, num_words))
-        # -------stop and print timer---------
         end = time.time()
-        print("Time to process file: " + str(end - start))
+        print("Time to process file: " + str(end - start) + ' - ' + str(i) + '/' + str(num_docs))
+        i += 1
 
     doc_freq, doc_appear = removeSinglets(doc_freq, doc_appear)
-    avg_words = total_words / len(documents)
+    avg_words = total_words / num_docs
     for vector in doc_freq:
-        vector.tf_idf(len(documents), doc_appear)
+        vector.tf_idf(num_docs, doc_appear)
         vector.average_words = avg_words
-        
     return total_freq, doc_freq, doc_appear
 
 def write_json(doc_freq, doc_appear, n):
@@ -176,6 +194,8 @@ def write_json(doc_freq, doc_appear, n):
 def removeSinglets(doc_freq, doc_appear):
     # Remove all words that appear in only one document
     new_doc_appear = {}
+    num_words = len(doc_appear)
+    i = 1
     for word in doc_appear:
         if doc_appear[word] == 1:
             for vector in doc_freq:
@@ -184,8 +204,12 @@ def removeSinglets(doc_freq, doc_appear):
                     break
         else:
             new_doc_appear[word] = doc_appear[word]
+        print('Checking Words ' + str(i) + '/' + str(num_words))
+        i += 1
     return doc_freq, new_doc_appear
 
+
+# TODO: FIX PROBLEM OF EMPTY STRINGS BEING ADDED TO VECTORIZATION
 if __name__ == '__main__':
     dataset_path, output_name, stop_words_path = parseVectorizerArgs(sys.argv[1:])
     documents, output_path = createGroundTruth(dataset_path, output_name)
@@ -196,7 +220,7 @@ if __name__ == '__main__':
     write_json(doc_freq, doc_appear, len(documents))
 
     print("Breakpoint")
-    
+
     # # TODO: REMOVE THESE BEFORE FINAL SUBMISSION
     # # --- SKLEARN VECTORIZERS (FOR OUR COMPARISON) ---
     # # Sk Word Count Matrix
