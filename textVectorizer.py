@@ -10,39 +10,23 @@ import json
 
 class Vector:
 
-    def __init__(self, word_freq, name, num_words):
-        self.name = name
-        self.author = name.split('/')[-2]
-        self.num_words = num_words
-        self.average_words = None
-        self.word_freq = word_freq
-        self.weights = {}
-        self.word_vector = None
+    def __init__(self, word_freq, name):
+        self.name = name # path to document
+        self.author = name.split('/')[-2] # author of the document
+        self.num_words = None # num words in the document
+        self.average_words = None # average words in document collection
+        self.word_freq = word_freq # frequency of each word in the document
+        self.tfidf_weights = None # tf-idf weights for each word in the document
+        self.okapi_left = None
+        self.okapi_right = None
 
-    def to_json(self):
-        return {"name": self.name, "author": self.author,"num_words": self.num_words, 
-                "average_words": self.average_words, "word_freq": self.word_freq, 
-                "weights": self.weights}
-
-    def tf_idf(self, n, doc_appear):
-        max_freq = max(self.word_freq.values())
-        for word, freq in self.word_freq.items():
-            tf = freq/max_freq
-            idf = math.log2(n/doc_appear[word])
-            self.weights[word] = tf * idf
+    def tf_idf(self, n, word_doc_counts):
+        self.tfidf_weights = np.multiply(self.word_freq/np.amax(self.word_freq), np.log2(n/word_doc_counts))
     
-    # TODO: recheck this
-    def okapi(self, other, n, doc_appear, k1=1.5, b=0.75, k2=500):
-        ok_sim = 0
-        match_words = self.weights.keys() & other.weights.keys()
-        if not match_words:
-            return np.NINF
-        for word in match_words:
-            alt_idf_d = math.log((n - doc_appear[word] + .5) / (doc_appear[word] + .5))
-            alt_tf = ((k1 + 1) * self.word_freq[word]) / (k1 * (1 - b + b * (self.num_words / self.average_words)) + self.word_freq[word])
-            alt_idf_q = ((k2 + 1) * other.word_freq[word]) / (k2 + other.word_freq[word]) 
-            ok_sim += (alt_idf_d * alt_tf * alt_idf_q)
-        return ok_sim
+    def calc_okapi(self, n, word_doc_counts, k1=1.5, b=0.75, k2=500):
+        self.okapi_left = np.multiply(np.log((n-word_doc_counts + 0.5)/(word_doc_counts+0.5)), 
+                                    ((k1+1)*self.word_freq)/(k1 * (1-b+b*self.num_words/self.average_words) + self.word_freq))
+        self.okapi_right = ((k2+1) * self.word_freq)/(k2+self.word_freq)
 
 
 # TODO: further input validation and error handling??
@@ -91,126 +75,139 @@ def processStopWords(stop_word_path):
     f = open(stop_word_path, "r")
     words = f.read().split()
     f.close()
-    # TODO: replace punctuation with spaces instead of empty string?
-    return {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
+    stop_words = {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
+    # special case
+    stop_words[''] = 1
+    return stop_words
 
 def createVectors(documents, stop_words):
     doc_appear = {} # how many documents a word appears in
     doc_vectors = [] # list of document vectors
     num_docs = len(documents) # num documents in dataset
-    total_words = 0 # num words in document dataset
-    stemmer = nltk.PorterStemmer()
-
+    stemmer = nltk.SnowballStemmer('english')
     i = 1
     for file_path in documents:
         start = time.time() # start timer
-
         f = open(file_path, 'r')
         words = f.read().split()
         f.close()
 
-        num_words = 0 # num words in document
-        doc_freqs = {} # term frequencies for given document
+        word_freqs = {} # term frequencies for given document
 
         for word in words:
             word = word.lower().translate(str.maketrans('', '', string.punctuation)) # lower case and remove punctuation
-
-            if word in stop_words or word == '':
+            if word in stop_words:
                 continue
             else:
-                num_words += 1 # word is considered in document comparison
                 word = stemmer.stem(word) # stem word
-
                 # Add word to individual frequency
-                if word in doc_freqs:
-                    doc_freqs[word] += 1
+                if word in word_freqs:
+                    word_freqs[word] += 1
                 else:
-                    doc_freqs[word] = 1
+                    word_freqs[word] = 1
                     if word in doc_appear:
                         doc_appear[word] += 1
                     else:
                         doc_appear[word] = 1
-        total_words += num_words
-        doc_vectors.append(Vector(doc_freqs, file_path, num_words))
-
+        doc_vectors.append(Vector(word_freqs, file_path))
         end = time.time()
         print("Time to process file: " + str(end - start) + ' - ' + str(i) + '/' + str(num_docs))
         i += 1
-
-    avg_words = total_words / num_docs
-    # compute weights for each document term
-    for vector in doc_vectors:
-        vector.tf_idf(num_docs, doc_appear)
-        vector.average_words = avg_words
     
-    doc_vectors = convertToSparse(doc_vectors, doc_appear)
-    doc_vectors, doc_appear = removeSinglets(doc_vectors, doc_appear)
-    return doc_vectors, doc_appear
+    doc_appear = {k:v for k,v in doc_appear.items() if v > 1} # remove words that appear in only one document
+    word_list = list(doc_appear.keys()) # list of words in the dataset
+    word_doc_counts = np.asarray(list(doc_appear.values())) # list of how many documents each word appears in
 
-def convertToSparse(doc_vectors, doc_appear):
-    for word in doc_appear:
-        for vector in doc_vectors:
-            new_word_freq = []
-            new_word_weights = []
-            if word in vector.word_freq:
-                new_word_freq.append(vector.word_freq[word])
-                new_word_weights[word] = vector.word_weights[word]
-            else:
-                new_word_freq[word] = 0
-                new_word_weights[word] = 0.0
+    doc_vectors, total_Words = convertToSparse(doc_vectors, word_list) # align and convert vectors to sparse
+    
+    avg_words = total_Words/num_docs
+    for vector in doc_vectors:
+        start = time.time()
+        vector.average_words = avg_words
+        vector.tf_idf(num_docs, word_doc_counts)
+        vector.calc_okapi(num_docs, word_doc_counts)
+        end = time.time()
+        print("Time to process tf-idf and okapi: " + str(end - start))
+    return doc_vectors, word_list, word_doc_counts
+
+# NOTE: this could be unnecessary?
+def convertToSparse(doc_vectors, word_list):
+    total_words = 0
+    for vector in doc_vectors:
+        start = time.time()
+        new_freqs = np.asarray([vector.word_freq[word] if word in vector.word_freq else 0 for word in word_list], dtype=np.int32)
+        vector.word_freq = new_freqs
+        vector.num_words = np.sum(new_freqs)
+        total_words += vector.num_words
+        end = time.time()
+        print("Time to convert to sparse: " + str(end - start))
+    return doc_vectors, total_words
+
+def writeToFiles(doc_vectors, word_list, word_doc_counts):
+    print("WRITING TO FILES....")
+    word_counts_file = open('vectorized/word_counts.txt', 'w')
+    word_counts_file.write(str(word_list) + '\n')
+    word_counts_file.write(str(word_doc_counts.tolist()))
+    word_counts_file.close()
+
+    doc_info_vec = open('vectorized/doc_info_vec.txt', 'w')
+    doc_tfidf_vec = open('vectorized/doc_tfidf_weights.txt', 'w')
+    doc_okapi_left_vec = open('vectorized/doc_okapi_left_weights.txt', 'w')
+    doc_okapi_right_vec = open('vectorized/doc_okapi_right_weights.txt', 'w')
+
+    doc_info_vec.write('[')
+    doc_tfidf_vec.write('[')
+    doc_okapi_left_vec.write('[')
+    doc_okapi_right_vec.write('[')
+
+    for idx, vector in enumerate(doc_vectors):
+        doc_info_vec.write(str({'author': vector.author, 'file_name': vector.name, 'num_words': vector.num_words, 'average_words': vector.average_words}))
+        doc_tfidf_vec.write(str(vector.tfidf_weights))
+        doc_okapi_left_vec.write(str(vector.okapi_left))
+        doc_okapi_right_vec.write(str(vector.okapi_right))
+        if idx != len(doc_vectors) - 1:
+            doc_info_vec.write(',')
+            doc_tfidf_vec.write(',')
+            doc_okapi_left_vec.write(',')
+            doc_okapi_right_vec.write(',')
+
+    doc_info_vec.write(']')
+    doc_tfidf_vec.write(']')
+    doc_okapi_left_vec.write(']')
+    doc_okapi_right_vec.write(']')
+    
+    doc_info_vec.close()
+    doc_tfidf_vec.close()
+    doc_okapi_left_vec.close()
+    doc_okapi_right_vec.close()
+
+# prunes down representations for output to file
+def pruneToDict(doc_vectors, word_list):
+    for vector in doc_vectors:
+        start = time.time()
+        new_tfidf_weights = {}
+        new_okapi_left = {}
+        new_okapi_right = {}
+        for idx, word in enumerate(word_list):
+            if vector.word_freq[idx] != 0:
+                new_tfidf_weights[word] = vector.tfidf_weights[idx]
+                new_okapi_left[word] = vector.okapi_left[idx]
+                new_okapi_right[word] = vector.okapi_right[idx]
+        vector.tfidf_weights = new_tfidf_weights
+        vector.okapi_left = new_okapi_left
+        vector.okapi_right = new_okapi_right
+        end = time.time()
+        print("Time to prune to dict: " + str(end - start))
     return doc_vectors
 
-
-def removeSinglets(doc_freq, doc_appear):
-    # Remove all words that appear in only one document
-    new_doc_appear = {}
-    num_words = len(doc_appear)
-    i = 1
-    for word in doc_appear:
-        if doc_appear[word] == 1:
-            for vector in doc_freq:
-                if word in vector.word_freq:
-                    del vector.word_freq[word]
-                    break
-        else:
-            new_doc_appear[word] = doc_appear[word]
-        print('Checking Words ' + str(i) + '/' + str(num_words))
-        i += 1
-    return doc_freq, new_doc_appear
-
-def writeJson(doc_freq, doc_appear, n):
-    json_vectors = [x.to_json() for x in doc_freq]
-    f = open("vectors.json", "w")
-    f.write(str(n))
-    f.write("\n")
-    json.dump(doc_appear, f)
-    f.write("\n")
-    json.dump(json_vectors, f)
-    f.close()
-
-# TODO: FIX PROBLEM OF EMPTY STRINGS BEING ADDED TO VECTORIZATION
 if __name__ == '__main__':
     dataset_path, output_path, stop_words_path = parseVectorizerArgs(sys.argv[1:])
     documents = createGroundTruth(dataset_path, output_path)
     stop_words = processStopWords(stop_words_path)
     ground_truth_df = pd.read_csv(output_path)
 
-    doc_vectors, doc_appear = createVectors(documents, stop_words)
-    writeJson(doc_vectors, doc_appear, len(documents))
+    doc_vectors, word_list, word_doc_counts = createVectors(documents, stop_words)
+    doc_vectors = pruneToDict(doc_vectors, word_list)
+    writeToFiles(doc_vectors, word_list, word_doc_counts)
 
     print("Breakpoint")
-
-    # # TODO: REMOVE THESE BEFORE FINAL SUBMISSION
-    # # --- SKLEARN VECTORIZERS (FOR OUR COMPARISON) ---
-    # # Sk Word Count Matrix
-    # sk_count_vectorizer = sktext.CountVectorizer(analyzer='word', input='filename')
-    # sk_count_wm = sk_count_vectorizer.fit_transform(documents)
-    # sk_count_tokens = sk_count_vectorizer.get_feature_names_out()
-    # sk_wm_df = pd.DataFrame(sk_count_wm.toarray(), index=documents, columns=sk_count_tokens)
-
-    # # Sk tf-idf Matrix
-    # sk_tfidf_vectorizer = sktext.TfidfVectorizer(analyzer='word', input='filename')
-    # sk_tfidf_wm = sk_tfidf_vectorizer.fit_transform(documents)
-    # sk_tfidf_tokens = sk_tfidf_vectorizer.get_feature_names_out()
-    # sk_tfidf_df = pd.DataFrame(sk_tfidf_wm.toarray(), index=documents, columns=sk_tfidf_tokens)
-    # # ------

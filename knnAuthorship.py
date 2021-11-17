@@ -35,16 +35,16 @@ def toVector(dict_rep, doc_appear, weight_matrix, sim_metric):
     v.author = dict_rep["author"]
     v.average_words = dict_rep["average_words"]
     v.word_freq = dict_rep["word_freq"]
-    v.weights = dict_rep["weights"]
+    v.tfidf_weights = dict_rep["weights"]
 
     if sim_metric != "okapi":
         new_weights = []
         for word in doc_appear.keys():
-            if word in v.weights:
-                new_weights.append(v.weights[word])
+            if word in v.tfidf_weights:
+                new_weights.append(v.tfidf_weights[word])
             else:
                 new_weights.append(0)
-        v.weights = new_weights
+        v.tfidf_weights = new_weights
         weight_matrix.append(new_weights)
 
     end = time.time()

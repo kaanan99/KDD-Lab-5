@@ -37,11 +37,11 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "datasets",
+                "datasetsTest",
                 "ground_truth.csv",
                 "stop_words/stopwords-medium.txt"
             ],
-            // "noDebug": true
+            "noDebug": true
         }
     ]
 }
