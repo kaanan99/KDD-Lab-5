@@ -6,7 +6,6 @@ import string
 import nltk
 import time
 import math
-import sklearn.feature_extraction.text as sktext
 import json
 
 class Vector:
@@ -18,6 +17,7 @@ class Vector:
         self.average_words = None
         self.word_freq = word_freq
         self.weights = {}
+        self.word_vector = None
 
     def to_json(self):
         return {"name": self.name, "author": self.author,"num_words": self.num_words, 
@@ -30,56 +30,9 @@ class Vector:
             tf = freq/max_freq
             idf = math.log2(n/doc_appear[word])
             self.weights[word] = tf * idf
-
-    def calcDist(self, other, metric, n, doc_appear):
-        if metric == 'cos':
-            return self.cosSim(other)
-        elif metric == 'okapi':
-            return self.okapi(other, n, doc_appear)
-
-    # TODO: double check this
-    # TODO: MAYBE CONVERT TO LIST COMPREHENSION/NP ARRAYS
-    def cosSim(self, other):
-        #Version 3
-        return np.dot(self.weights, other.T)/(np.linalg.norm(self.weights)*np.linalg.norm(other, axis=1).T)
-        # similarity = 0
-        # numerator = 0
-        # denom1 = 0
-        # denom2 = 0
-        # for word in totalWords:
-        #     selfWeight = 0
-        #     otherWeight = 0
-        #     if word in self.weights:
-        #         selfWeight = self.weights[word]
-        #     if word in other.weights:
-        #         otherWeight = other.weights[word]
-        #     numerator += selfWeight * otherWeight
-        #     denom1 += selfWeight ** 2
-        #     denom2 += otherWeight ** 2
-        # denominator = math.sqrt(denom1 * denom2)
-        # similarity = numerator / denominator
-        # return similarity
-        
-        # Original
-        # similarity = 0
-        # numerator = 0
-        # denom1 = 0
-        # denom2 = 0
-        # match_words = set(self.weights.keys()).union(set(other.weights.keys()))
-        # for word in match_words:
-        #     numerator += self.weights[word] * other.weights[word]
-        #     denom1 += self.weights[word] ** 2
-        #     denom2 += other.weights[word] ** 2
-        # denominator = math.sqrt(denom1 * denom2)
-        # similarity = numerator / denominator
-        # return similarity
     
-    # TODO: MAYBE CONVERT TO LIST COMPREHENSION/NP ARRAYS
     # TODO: recheck this
-    def okapi(self, other, n, doc_appear):
-        k1 = 1.5
-        b = .75
-        k2 = 500
+    def okapi(self, other, n, doc_appear, k1=1.5, b=0.75, k2=500):
         ok_sim = 0
         match_words = self.weights.keys() & other.weights.keys()
         if not match_words:
@@ -91,20 +44,38 @@ class Vector:
             ok_sim += (alt_idf_d * alt_tf * alt_idf_q)
         return ok_sim
 
+
 # TODO: further input validation and error handling??
 def parseVectorizerArgs(args):
     # if there are not 2 arguments then error
     if len(args) != 3:
         print("Error:")
-        print("Usage: python3 textVectorizer.py <directory_path> <output_name>")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
+        sys.exit(1)
+    #check if args[0] is a directory
+    if not os.path.isdir(args[0]):
+        print("Error:")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
+        print("Directory path does not exist")
+        sys.exit(1)
+    # check if args[1] is a csv
+    if not args[1].endswith('.csv'):
+        print("Error:")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
+        print("Output file must be a csv")
+        sys.exit(1)
+    # check if args[2] is a txt file
+    if not args[2].endswith('.txt'):
+        print("Error:")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
+        print("Output file must be a txt")
         sys.exit(1)
     return args[0], args[1], args[2]
 
 # TODO: Examine whether this is how we want to do this
-def createGroundTruth(dataset_path, output_name):
+def createGroundTruth(dataset_path, output_path):
     # list of document paths
     documents = []
-    output_path = output_name + ".csv"
     # iterate over dataset_path directory and create ground truth .csv file
     with open(output_path, 'w') as output_file:
         output_file.write('file_name,author\n')
@@ -114,7 +85,7 @@ def createGroundTruth(dataset_path, output_name):
                     output_file.write(file + ',' + author + '\n')
                     documents.append(dataset_path + '/' + dir + '/' + author + '/' + file)
         output_file.close()
-    return documents, output_path
+    return documents
 
 def processStopWords(stop_word_path):
     f = open(stop_word_path, "r")
@@ -123,73 +94,72 @@ def processStopWords(stop_word_path):
     # TODO: replace punctuation with spaces instead of empty string?
     return {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
 
-def getFrequencies(documents, stop_words):
-    total_freq = {} # word freq across document set
+def createVectors(documents, stop_words):
     doc_appear = {} # how many documents a word appears in
-    doc_freq = [] # list of document vectors
-    num_docs = len(documents)
-    total_words = 0
-    ps = nltk.PorterStemmer()
+    doc_vectors = [] # list of document vectors
+    num_docs = len(documents) # num documents in dataset
+    total_words = 0 # num words in document dataset
+    stemmer = nltk.PorterStemmer()
 
     i = 1
     for file_path in documents:
-        start = time.time()
-        num_words = 0
-        ind_freq = {}
+        start = time.time() # start timer
 
         f = open(file_path, 'r')
         words = f.read().split()
         f.close()
 
+        num_words = 0 # num words in document
+        doc_freqs = {} # term frequencies for given document
+
         for word in words:
-            num_words += 1
-            total_words += 1
-            # Remove puncuation and set to lower case
-            # TODO: replace punctuation with spaces instead of empty string?
-            word = word.lower().translate(str.maketrans('', '', string.punctuation))
-            #Check if stop word
-            if word in stop_words:
+            word = word.lower().translate(str.maketrans('', '', string.punctuation)) # lower case and remove punctuation
+
+            if word in stop_words or word == '':
                 continue
             else:
-                # Stem word 
-                word = ps.stem(word)
-                # Add word to total frequency
-                if word in total_freq:
-                    total_freq[word] += 1
-                else:
-                    total_freq[word] = 1
+                num_words += 1 # word is considered in document comparison
+                word = stemmer.stem(word) # stem word
+
                 # Add word to individual frequency
-                if word in ind_freq:
-                    ind_freq[word] += 1
+                if word in doc_freqs:
+                    doc_freqs[word] += 1
                 else:
-                    ind_freq[word] = 1
-                    # Add word tot number of documents in which it appears
+                    doc_freqs[word] = 1
                     if word in doc_appear:
                         doc_appear[word] += 1
                     else:
                         doc_appear[word] = 1
+        total_words += num_words
+        doc_vectors.append(Vector(doc_freqs, file_path, num_words))
 
-        doc_freq.append(Vector(ind_freq, file_path, num_words))
         end = time.time()
         print("Time to process file: " + str(end - start) + ' - ' + str(i) + '/' + str(num_docs))
         i += 1
 
-    doc_freq, doc_appear = removeSinglets(doc_freq, doc_appear)
     avg_words = total_words / num_docs
-    for vector in doc_freq:
+    # compute weights for each document term
+    for vector in doc_vectors:
         vector.tf_idf(num_docs, doc_appear)
         vector.average_words = avg_words
-    return total_freq, doc_freq, doc_appear
+    
+    doc_vectors = convertToSparse(doc_vectors, doc_appear)
+    doc_vectors, doc_appear = removeSinglets(doc_vectors, doc_appear)
+    return doc_vectors, doc_appear
 
-def write_json(doc_freq, doc_appear, n):
-    json_vectors = [x.to_json() for x in doc_freq]
-    f = open("vectors.json", "w")
-    f.write(str(n))
-    f.write("\n")
-    json.dump(doc_appear, f)
-    f.write("\n")
-    json.dump(json_vectors, f)
-    f.close()
+def convertToSparse(doc_vectors, doc_appear):
+    for word in doc_appear:
+        for vector in doc_vectors:
+            new_word_freq = []
+            new_word_weights = []
+            if word in vector.word_freq:
+                new_word_freq.append(vector.word_freq[word])
+                new_word_weights[word] = vector.word_weights[word]
+            else:
+                new_word_freq[word] = 0
+                new_word_weights[word] = 0.0
+    return doc_vectors
+
 
 def removeSinglets(doc_freq, doc_appear):
     # Remove all words that appear in only one document
@@ -208,16 +178,25 @@ def removeSinglets(doc_freq, doc_appear):
         i += 1
     return doc_freq, new_doc_appear
 
+def writeJson(doc_freq, doc_appear, n):
+    json_vectors = [x.to_json() for x in doc_freq]
+    f = open("vectors.json", "w")
+    f.write(str(n))
+    f.write("\n")
+    json.dump(doc_appear, f)
+    f.write("\n")
+    json.dump(json_vectors, f)
+    f.close()
 
 # TODO: FIX PROBLEM OF EMPTY STRINGS BEING ADDED TO VECTORIZATION
 if __name__ == '__main__':
-    dataset_path, output_name, stop_words_path = parseVectorizerArgs(sys.argv[1:])
-    documents, output_path = createGroundTruth(dataset_path, output_name)
+    dataset_path, output_path, stop_words_path = parseVectorizerArgs(sys.argv[1:])
+    documents = createGroundTruth(dataset_path, output_path)
     stop_words = processStopWords(stop_words_path)
     ground_truth_df = pd.read_csv(output_path)
 
-    total_freq, doc_freq, doc_appear = getFrequencies(documents, stop_words)
-    write_json(doc_freq, doc_appear, len(documents))
+    doc_vectors, doc_appear = createVectors(documents, stop_words)
+    writeJson(doc_vectors, doc_appear, len(documents))
 
     print("Breakpoint")
 

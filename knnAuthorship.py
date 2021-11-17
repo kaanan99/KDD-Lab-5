@@ -1,6 +1,7 @@
 import sys
 import json
 from textVectorizer import Vector
+import sklearn.metrics.pairwise as skpair
 import time
 import pandas as pd
 import numpy as np
@@ -28,41 +29,46 @@ def parseKNNAuthorshipArgs(args):
         sys.exit(1)
     return args[0], args[1], k
 
-def toVector(dict_rep, doc_appear):
+def toVector(dict_rep, doc_appear, weight_matrix, sim_metric):
     start = time.time()
     v =  Vector(dict_rep["word_freq"],dict_rep["name"], dict_rep["num_words"])
     v.author = dict_rep["author"]
     v.average_words = dict_rep["average_words"]
     v.word_freq = dict_rep["word_freq"]
     v.weights = dict_rep["weights"]
-    new_weights = []
-    for word in doc_appear.keys():
-        if word in v.weights:
-            new_weights.append(v.weights[word])
-        else:
-            new_weights.append(0)
-    v.weights = new_weights
+
+    if sim_metric != "okapi":
+        new_weights = []
+        for word in doc_appear.keys():
+            if word in v.weights:
+                new_weights.append(v.weights[word])
+            else:
+                new_weights.append(0)
+        v.weights = new_weights
+        weight_matrix.append(new_weights)
+
     end = time.time()
     print("Time to convert to vector: " + str(end - start))
     return v
 
-def readVectorFile(vector_file_path):
+def readVectorFile(vector_file_path, sim_metric):
     f = open(vector_file_path, "r")
     n = int(f.readline())
     doc_appear = json.loads(f.readline())
-    doc_freq = [toVector(x, doc_appear) for x in json.loads(f.readline())]
+    weight_matrix = []
+    doc_freq = [toVector(x, doc_appear, weight_matrix, sim_metric) for x in json.loads(f.readline())]
     f.close()
-    return n, doc_appear, doc_freq
+    
+    if sim_metric == 'okapi':
+        return n, doc_appear, doc_freq, None
+    else:
+        return n, doc_appear, doc_freq, np.asarray(weight_matrix)
 
 def makeMatrix(predictions, actual):
-    # get all possible class labels from truth label set
     class_label_options = actual.unique()   # all possible class labels
-    # get actual class labels as a list
     actual_vals = actual.array
 
-    # create an all-zero DataFrame with rows and columns labeled with class labels
     df = pd.DataFrame([[0 * len(class_label_options)] * len(class_label_options)], class_label_options, class_label_options)
-    # go through each prediction-truth pair and increment the appropriate cell count
     for x in range(len(predictions)):
         df.loc[actual_vals[x], predictions[x]] += 1 
     df2 = pd.DataFrame(df.values,pd.MultiIndex.from_product([['Actual'], df.index]), pd.MultiIndex.from_product([['Predicted'], df.columns]))
@@ -73,34 +79,22 @@ def authorAccuracy(df):
         correct = df.loc[name, name]
         print(name + ": " + str(correct/10))
 
-# def getClass(distances):
-#     d = {}
-#     for x in distances:
-#         if x.class_val in d:
-#             d[x.class_val] += 1
-#         else:
-#             d[x.class_val] = 1
-#     return max(d, key=lambda k: d[k])
+def calcOkapiSims(doc_freq, doc_appear, n):
+    distances = []
+    for i in range(n):
+        start = time.time()
+        doc_dist = [doc_freq[i].okapi(doc_freq[j], n, doc_appear) for j in range(n)]
+        distances.append(doc_dist)
+        end = time.time()
+        print("Time to calculate okapi sims: " + str(end - start) + ' - ' + str(i) + '/' + str(n))
+    return distances
 
-# def predictOld(vector, doc_freq, n, doc_appear, sim_metric, k, i):
-#     distances = []
-#     if sim_metric == "okapi":
-#         for v in doc_freq:
-#             distances.append(Item(vector.calcDist(v, sim_metric, n, doc_appear), v.author, v.name))
-#     else:
-#         calc_distances = vector.calcDist(weight_matrix[:, i] + weight_matrix[i, :], n, doc_appear)]
-#         distances = [Item(calc_distances[i], doc_freq[i].author) for i in range(len(calc_distances))]
-#     distances.sort(key=lambda x: x.distance, reverse=True)
-#     return getClass(distances[:k])
-
-
-def predictCos(weight_matrix, doc_freq, k, i):
-    distances = doc_freq[i].cosSim(weight_matrix)
-    distances[i] = np.NINF
-    indLargest = np.argpartition(distances, -k)[-k:]
-    authors = [doc_freq[i].author for i in indLargest]
-    most_freq_author = max(set(authors), key=authors.count)
-    return most_freq_author
+def predict(doc_freq, distance_arr_v, i, k):
+    distance_arr_v[i] = np.NINF
+    largest_k_indices = np.argpartition(distance_arr_v, -k)[-k:]
+    most_sim_authors = [doc_freq[x].author for x in largest_k_indices]
+    # get plurality of authors
+    return max(set(most_sim_authors), key=most_sim_authors.count)
 
 def knn(n, doc_freq, doc_appear, k, sim_metric, weight_matrix):
     predictions = []
@@ -108,9 +102,16 @@ def knn(n, doc_freq, doc_appear, k, sim_metric, weight_matrix):
     corr_predict = 0
     incorr_predict = 0
     tot_predict = 0
-    for i in range(len(doc_freq)):
+
+    if sim_metric == "cos":
+        num = weight_matrix / np.linalg.norm(weight_matrix, 2, axis=1).reshape(-1, 1)
+        distances = np.dot(num, num.T)
+    elif sim_metric == "okapi":
+        distances = calcOkapiSims(doc_freq, doc_appear, n)
+
+    for i in range(len(distances)):
         start = time.time()
-        prediction = predictCos(weight_matrix, doc_freq, k, i)
+        prediction = predict(doc_freq, distances[i], i, k)
         predictions.append(prediction)
         actual.append(doc_freq[i].author)
         end = time.time()
@@ -128,11 +129,10 @@ def knn(n, doc_freq, doc_appear, k, sim_metric, weight_matrix):
 
 if __name__ == '__main__':
     vector_file_path, sim_metric, k = parseKNNAuthorshipArgs(sys.argv[1:])
-    n, doc_appear, doc_freq = readVectorFile(vector_file_path)
-    weight_matrix = np.array([v.weights for v in doc_freq])
-    
+    n, doc_appear, doc_freq, weight_matrix = readVectorFile(vector_file_path, sim_metric)
+
     predictions, actual = knn(n, doc_freq, doc_appear, k, sim_metric, weight_matrix)
+    
     df, matrix = makeMatrix(predictions, pd.Series(actual))
     print(matrix)
     authorAccuracy(df)
-    print("Breakpoint")
