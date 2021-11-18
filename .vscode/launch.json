@@ -13,9 +13,9 @@
             "args": [
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
-                "1",
-                "500",
-                "100"
+                "3",
+                "15",
+                "1750"
             ],
             "noDebug": true
         },

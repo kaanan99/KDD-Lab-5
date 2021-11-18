@@ -35,26 +35,27 @@ def get_data_selection(D, attrbs, class_col, numAttrbs, numDataPts):
     return D[select_attrbs].sample(n=numDataPts, replace=True), rand_attrbs
 
 
-def build_random_forest(args, D, attrbs_info, class_col, vals_per_attrb):
+def build_random_forest(TREE_THRES, num_trees, num_attr, num_data_points, D, attrbs_info, class_col, vals_per_attrb):
     trees = []
     select_times = 0
     c45_times = 0
 
-    for i in range(args.numTrees):
+    for i in range(num_trees):
         start = time.time()
-        Di, attrbsi = get_data_selection(D, attrbs_info.keys(), class_col, args.numAttrbs, args.numDataPts)    # get subset of data
+        Di, attrbsi = get_data_selection(D, attrbs_info.keys(), class_col, num_attr, num_data_points)    # get subset of data
         attrbsi_info = {A: attrbs_info[A] for A in attrbsi}                                         # get subset of attrb info
         end = time.time()
 
-        Ti = c45(Di, attrbsi_info, args.threshold, True, class_col, vals_per_attrb)                 # gen tree
+        Ti = c45(Di, attrbsi_info, TREE_THRES, True, class_col, vals_per_attrb)               # gen tree
         end2 = time.time()
         trees.append(Ti)
 
         select_times += end - start
         c45_times += end2 - end
+        # print(f"  Tree {i} took {end2 - start}s to build")
 
-    select_times /= args.numTrees
-    c45_times /= args.numTrees
+    select_times /= num_trees
+    c45_times /= num_trees
     # print(f"  On avg, data select ({args.numAttrbs}/{len(attrbs_info.keys())} attrbs, {args.numDataPts}/{D.shape[0]} pts) takes {select_times}s")
     # print(f"  On avg, c45 ({args.numAttrbs}/{len(attrbs_info.keys())} attrbs, {args.numDataPts}/{D.shape[0]} pts) takes {c45_times}s")
 

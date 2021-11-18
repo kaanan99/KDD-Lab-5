@@ -54,7 +54,7 @@ def convertToSparseVector(vector, vec_dict, word_list):
     vector.okapi_left = np.asarray(okapi_left)
     vector.okapi_right = np.asarray(okapi_right)
     end = time.time()
-    print("Time to convert to sparse vector: " + str(end - start))
+    # print("Time to convert to sparse vector: " + str(end - start))
     return vector
 
 def readVectorFile(vector_file_path, word_counts_path):
