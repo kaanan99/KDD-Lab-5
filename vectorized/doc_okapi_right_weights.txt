@@ -1,1 +1,0 @@
-[{'appl': 1.0},{'appl': 1.0},{'appl': 1.0, 'orang': 1.0},{'orang': 1.0, 'scikitlearn': 1.0},{'orang': 1.0, 'scikitlearn': 1.0}]

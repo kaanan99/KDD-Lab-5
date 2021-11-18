@@ -11,11 +11,13 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "vectors.json",
-                "cos",
-                "90"
+                "vectorized/doc_vectors.txt",
+                "vectorized/word_counts.txt",
+                "1",
+                "500",
+                "100"
             ],
-            // "noDebug": true
+            "noDebug": true
         },
         {
             "name": "knnAuthorship.py",
@@ -24,9 +26,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "vectors.json",
+                "vectorized/doc_vectors.txt",
+                "vectorized/word_counts.txt",
                 "cos",
-                "22"
+                "10"
             ],
             "noDebug": true
         },
@@ -37,9 +40,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "datasetsTest",
+                "datasets",
                 "ground_truth.csv",
-                "stop_words/stopwords-medium.txt"
+                "stop_words"
             ],
             "noDebug": true
         }

@@ -28,7 +28,6 @@ class Vector:
                                     ((k1+1)*self.word_freq)/(k1 * (1-b+b*self.num_words/self.average_words) + self.word_freq))
         self.okapi_right = ((k2+1) * self.word_freq)/(k2+self.word_freq)
 
-
 # TODO: further input validation and error handling??
 def parseVectorizerArgs(args):
     # if there are not 2 arguments then error
@@ -39,20 +38,20 @@ def parseVectorizerArgs(args):
     #check if args[0] is a directory
     if not os.path.isdir(args[0]):
         print("Error:")
-        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_dir>")
         print("Directory path does not exist")
         sys.exit(1)
     # check if args[1] is a csv
     if not args[1].endswith('.csv'):
         print("Error:")
-        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_dir>")
         print("Output file must be a csv")
         sys.exit(1)
-    # check if args[2] is a txt file
-    if not args[2].endswith('.txt'):
+    # check if args[2] is a directory
+    if not os.path.isdir(args[2]):
         print("Error:")
-        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_path>")
-        print("Output file must be a txt")
+        print("Usage: python3 textVectorizer.py <directory_path> <ground_path> <stop_words_dir>")
+        print("Stop word directory path does not exist")
         sys.exit(1)
     return args[0], args[1], args[2]
 
@@ -71,12 +70,14 @@ def createGroundTruth(dataset_path, output_path):
         output_file.close()
     return documents
 
-def processStopWords(stop_word_path):
-    f = open(stop_word_path, "r")
-    words = f.read().split()
-    f.close()
-    stop_words = {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
-    # special case
+def processStopWords(stop_words_dir):
+    stop_words = {}
+    for file in os.listdir(stop_words_dir):
+        with open(stop_words_dir + '/' + file, 'r') as stop_file:
+            words = stop_file.read().split()
+            f_stop_words = {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
+            stop_words.update(f_stop_words)
+            stop_file.close()
     stop_words[''] = 1
     return stop_words
 
@@ -84,7 +85,7 @@ def createVectors(documents, stop_words):
     doc_appear = {} # how many documents a word appears in
     doc_vectors = [] # list of document vectors
     num_docs = len(documents) # num documents in dataset
-    stemmer = nltk.SnowballStemmer('english')
+    stemmer = nltk.SnowballStemmer(language='english')
     i = 1
     for file_path in documents:
         start = time.time() # start timer
@@ -96,7 +97,7 @@ def createVectors(documents, stop_words):
 
         for word in words:
             word = word.lower().translate(str.maketrans('', '', string.punctuation)) # lower case and remove punctuation
-            if word in stop_words:
+            if word in stop_words or word.isnumeric(): # if word is a stop word or a number
                 continue
             else:
                 word = stemmer.stem(word) # stem word
@@ -146,40 +147,18 @@ def convertToSparse(doc_vectors, word_list):
 def writeToFiles(doc_vectors, word_list, word_doc_counts):
     print("WRITING TO FILES....")
     word_counts_file = open('vectorized/word_counts.txt', 'w')
-    word_counts_file.write(str(word_list) + '\n')
-    word_counts_file.write(str(word_doc_counts.tolist()))
+    json.dump(word_list, word_counts_file)
+    word_counts_file.write('\n')
+    json.dump(word_doc_counts.tolist(), word_counts_file)
     word_counts_file.close()
 
-    doc_info_vec = open('vectorized/doc_info_vec.txt', 'w')
-    doc_tfidf_vec = open('vectorized/doc_tfidf_weights.txt', 'w')
-    doc_okapi_left_vec = open('vectorized/doc_okapi_left_weights.txt', 'w')
-    doc_okapi_right_vec = open('vectorized/doc_okapi_right_weights.txt', 'w')
+    doc_vec = open('vectorized/doc_vectors.txt', 'w')
 
-    doc_info_vec.write('[')
-    doc_tfidf_vec.write('[')
-    doc_okapi_left_vec.write('[')
-    doc_okapi_right_vec.write('[')
-
-    for idx, vector in enumerate(doc_vectors):
-        doc_info_vec.write(str({'author': vector.author, 'file_name': vector.name, 'num_words': vector.num_words, 'average_words': vector.average_words}))
-        doc_tfidf_vec.write(str(vector.tfidf_weights))
-        doc_okapi_left_vec.write(str(vector.okapi_left))
-        doc_okapi_right_vec.write(str(vector.okapi_right))
-        if idx != len(doc_vectors) - 1:
-            doc_info_vec.write(',')
-            doc_tfidf_vec.write(',')
-            doc_okapi_left_vec.write(',')
-            doc_okapi_right_vec.write(',')
-
-    doc_info_vec.write(']')
-    doc_tfidf_vec.write(']')
-    doc_okapi_left_vec.write(']')
-    doc_okapi_right_vec.write(']')
-    
-    doc_info_vec.close()
-    doc_tfidf_vec.close()
-    doc_okapi_left_vec.close()
-    doc_okapi_right_vec.close()
+    doc_vectors_arr = [{'author': str(vector.author), 'file_name': str(vector.name), 'num_words': int(vector.num_words), 'average_words': float(vector.average_words),
+                            'tfidf': vector.tfidf_weights, 'okapi_left': vector.okapi_left, 'okapi_right': vector.okapi_right} 
+                            for vector in doc_vectors]
+    json.dump(doc_vectors_arr, doc_vec)
+    doc_vec.close()
 
 # prunes down representations for output to file
 def pruneToDict(doc_vectors, word_list):
@@ -201,9 +180,9 @@ def pruneToDict(doc_vectors, word_list):
     return doc_vectors
 
 if __name__ == '__main__':
-    dataset_path, output_path, stop_words_path = parseVectorizerArgs(sys.argv[1:])
+    dataset_path, output_path, stop_words_dir = parseVectorizerArgs(sys.argv[1:])
     documents = createGroundTruth(dataset_path, output_path)
-    stop_words = processStopWords(stop_words_path)
+    stop_words = processStopWords(stop_words_dir)
     ground_truth_df = pd.read_csv(output_path)
 
     doc_vectors, word_list, word_doc_counts = createVectors(documents, stop_words)
