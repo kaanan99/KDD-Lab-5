@@ -14,65 +14,42 @@ def parseRFAuthorshipArgs(args):
 def createDF(doc_vectors, word_list):
     vector_weights = []
     vector_authors = []
-    vector_file_names = []
+    vector_file_ids = []
     for vector in doc_vectors:
         # print('Getting vector info')
         vector_weights.append(vector.tfidf_weights)
         vector_authors.append(vector.author)
-        vector_file_names.append(vector.name.split('/')[-1])
+        vector_file_ids.append(vector.name.split('/')[-1])
     print("Creating dataframe...")
     dataframe = pd.DataFrame(np.asarray(vector_weights), columns=word_list)
     dataframe['AUTHOR'] = np.asarray(vector_authors)
     print("Dataframe created.")
-    return dataframe, 'AUTHOR'
+    return dataframe, 'AUTHOR', vector_file_ids
+
+def outputResults(file_path, predictions, vector_file_ids):
+    # write to filepath
+    file_path = 'RFOutput/' + file_path
+    with open(file_path, 'w') as f:
+        f.write("file_name,author\n")
+        for idx, file_id in enumerate(vector_file_ids):
+            f.write(str(file_id) + ',' + str(predictions[idx]) + '\n')
+        f.close()
 
 if __name__ == '__main__':
     # NOTE: Important, maintain row indices of dataframe in order to get correct prediction-actual pairs
-
-    TREE_THRES = 0.8
+    TREE_THRES = 0
 
     vector_file_path, word_counts_path, num_trees, num_attr, num_data_points = parseRFAuthorshipArgs(sys.argv[1:])
 
     doc_vectors, word_list, word_counts = knnAuthorship.readVectorFile(vector_file_path, word_counts_path)
-    dataframe, class_col = createDF(doc_vectors, word_list)
-    attr_dict = {word:1 for word in word_list}
-    # tree = InduceC45New.c45(attr_dict, dataframe, TREE_THRES)
-    vals_per_attr = pd.Series({word:0 for word in word_list})
-    attr_info = {A: dataframe[A].unique() for A in word_list}
-    # trees = randomForest.build_random_forest(TREE_THRES, num_trees, num_attr, num_data_points, dataframe, attr_info, class_col, vals_per_attr)
+    dataframe, class_col, vector_file_ids = createDF(doc_vectors, word_list)
 
-    # # Get Predictions
-    # predictions = randomForest.forest_classify(dataframe, trees, vals_per_attr)
-    # matrix = knnAuthorship.makeMatrix(predictions, dataframe["AUTHOR"])
-    
-    #print(classify_author(dataframe, 'AlanCrosby'))
-    # Get the list of Authors
-    author_list = {}
-    for vector in doc_vectors:
-        if vector.author not in author_list:
-            author_list[vector.author] = 1
-    # Save the actual authors
-    actual_authors = dataframe["AUTHOR"]
-    # Begin Loop
-    for author_name in author_list.keys():
-        start = time.time()
-        # Change to Boolean Value depending on Author
-        dataframe["AUTHOR"] = dataframe["AUTHOR"] == author_name
-        # Create Trees
-        trees = randomForest.build_random_forest(TREE_THRES, num_trees, num_attr, num_data_points, dataframe, attr_info, class_col, vals_per_attr)
-        # print("Built Trees")
-        # Get Predictions
-        predictions = randomForest.forest_classify(dataframe, trees, vals_per_attr)
-        # print("Finished Predicting")
-        print("\nPredictions for " + author_name)
-        matrix = knnAuthorship.makeMatrix(predictions, dataframe["AUTHOR"])
-        print(matrix[1])
-        # Reset DataFrame
-        dataframe["AUTHOR"] = actual_authors
-        #print("Time to complete one classification:", time.time() - start)
+    start = time.time()
+    trees = randomForest.createRandomForest(dataframe, word_list, class_col, num_trees, num_attr, num_data_points, TREE_THRES)
+    print("Trees Created")
+    actual, predictions = randomForest.classifyRandomForest(trees, dataframe, class_col)
+    print("Classified")
+    end = time.time()
+    print("Time taken to build trees and classify: " + str(end - start))
 
-    '''print(predictions)
-
-    print(dataframe.head(10))
-    print(vals_per_attr)
-    print(vals_per_attr.at['senat'])'''
+    outputResults('classified_' + str(num_trees) + '_' + str(num_attr) + '_' + str(num_data_points) + '.csv', predictions, vector_file_ids)

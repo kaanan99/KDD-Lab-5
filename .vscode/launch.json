@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "classifierEvaluation.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "KNNOutput/classified_okapi_8.csv",
+                "ground_truth.csv"
+            ],
+            // "noDebug": true
+        },
+        {
             "name": "RFAuthorship.py",
             "type": "python",
             "request": "launch",
@@ -13,7 +25,7 @@
             "args": [
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
-                "3",
+                "1",
                 "15",
                 "1750"
             ],
@@ -28,8 +40,8 @@
             "args": [
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
-                "cos",
-                "10"
+                "okapi",
+                "8"
             ],
             "noDebug": true
         },

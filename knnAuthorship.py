@@ -1,10 +1,12 @@
 import sys
 import json
 from textVectorizer import Vector
+import concurrent.futures
 import sklearn.metrics.pairwise as skpair
 import time
 import pandas as pd
 import numpy as np
+import itertools as it
 
 class Item:
     def __init__(self, distance, class_val, path):
@@ -54,7 +56,7 @@ def convertToSparseVector(vector, vec_dict, word_list):
     vector.okapi_left = np.asarray(okapi_left)
     vector.okapi_right = np.asarray(okapi_right)
     end = time.time()
-    # print("Time to convert to sparse vector: " + str(end - start))
+    print("Time to convert to sparse vector: " + str(end - start))
     return vector
 
 def readVectorFile(vector_file_path, word_counts_path):
@@ -63,18 +65,12 @@ def readVectorFile(vector_file_path, word_counts_path):
     word_list = json.loads(word_counts_file.readline())
     word_counts = json.loads(word_counts_file.readline())
     doc_vectors_dicts = json.loads(vector_file.readline())
-    doc_vectors = [toVector(vec_dict, word_list) for vec_dict in doc_vectors_dicts]
+    
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        results = executor.map(toVector, doc_vectors_dicts, it.repeat(word_list))
+        doc_vectors = list(results)
+
     return doc_vectors, word_list, word_counts
-
-def makeMatrix(predictions, actual):
-    class_label_options = actual.unique()   # all possible class labels
-    actual_vals = actual.array
-
-    df = pd.DataFrame([[0 * len(class_label_options)] * len(class_label_options)], class_label_options, class_label_options)
-    for x in range(len(predictions)):
-        df.loc[actual_vals[x], predictions[x]] += 1 
-    df2 = pd.DataFrame(df.values,pd.MultiIndex.from_product([['Actual'], df.index]), pd.MultiIndex.from_product([['Predicted'], df.columns]))
-    return df, df2
 
 def authorAccuracy(df):
     for name in df.columns:
@@ -128,14 +124,18 @@ def knn(doc_vectors, k, sim_metric):
     print('Inaccuracy ' + str(incorr_predict/tot_predict) + '%')
     return predictions, actual
 
+def outputResults(file_path, doc_vectors, predictions):
+    # write to filepath
+    file_path = 'KNNOutput/' + file_path
+    with open(file_path, 'w') as f:
+        f.write("file_name,author\n")
+        for idx, vector in enumerate(doc_vectors):
+            f.write(str(vector.name.split('/')[-1]) + ',' + str(predictions[idx]) + '\n')
+        f.close()
+
 if __name__ == '__main__':
     vector_file_path, word_counts_path, sim_metric, k = parseKNNAuthorshipArgs(sys.argv[1:])
     doc_vectors, word_list, word_counts = readVectorFile(vector_file_path, word_counts_path)
     predictions, actual = knn(doc_vectors, k, sim_metric)
 
-    print('breakpoint')
-    # predictions, actual = knn(n, doc_freq, doc_appear, k, sim_metric, weight_matrix)
-    
-    # df, matrix = makeMatrix(predictions, pd.Series(actual))
-    # print(matrix)
-    # authorAccuracy(df)
+    outputResults('classified_' + str(sim_metric) + '_' + str(k) + '.csv', doc_vectors, predictions)

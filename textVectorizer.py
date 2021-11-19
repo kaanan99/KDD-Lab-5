@@ -21,7 +21,7 @@ class Vector:
         self.okapi_right = None
 
     def tf_idf(self, n, word_doc_counts):
-        self.tfidf_weights = np.multiply(self.word_freq/np.amax(self.word_freq), np.log2(n/word_doc_counts))
+        self.tfidf_weights = np.multiply(self.word_freq/np.max(self.word_freq), np.log2(n/word_doc_counts))
     
     def calc_okapi(self, n, word_doc_counts, k1=1.5, b=0.75, k2=500):
         self.okapi_left = np.multiply(np.log((n-word_doc_counts + 0.5)/(word_doc_counts+0.5)), 
@@ -76,7 +76,7 @@ def processStopWords(stop_words_dir):
         with open(stop_words_dir + '/' + file, 'r') as stop_file:
             words = stop_file.read().split()
             f_stop_words = {w.lower().translate(str.maketrans('', '', string.punctuation)):1 for w in words}
-            stop_words.update(f_stop_words)
+            stop_words = {**stop_words, **f_stop_words}
             stop_file.close()
     stop_words[''] = 1
     return stop_words
@@ -189,4 +189,3 @@ if __name__ == '__main__':
     doc_vectors = pruneToDict(doc_vectors, word_list)
     writeToFiles(doc_vectors, word_list, word_doc_counts)
 
-    print("Breakpoint")
