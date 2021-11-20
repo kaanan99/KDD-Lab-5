@@ -1,0 +1,455 @@
+===AUTHOR INFORMATION===
+Author: AaronPressman
+-----
+Hits: 75
+Misses: 25
+Strikes: 8
+Precision: 0.9036144578313253
+Recall: 0.75
+F1: 0.8196721311475409
+
+Author: AlanCrosby
+-----
+Hits: 62
+Misses: 38
+Strikes: 26
+Precision: 0.7045454545454546
+Recall: 0.62
+F1: 0.6595744680851063
+
+Author: AlexanderSmith
+-----
+Hits: 62
+Misses: 38
+Strikes: 46
+Precision: 0.5740740740740741
+Recall: 0.62
+F1: 0.5961538461538461
+
+Author: BenjaminKangLim
+-----
+Hits: 35
+Misses: 65
+Strikes: 53
+Precision: 0.3977272727272727
+Recall: 0.35
+F1: 0.3723404255319149
+
+Author: BernardHickey
+-----
+Hits: 52
+Misses: 48
+Strikes: 27
+Precision: 0.6582278481012658
+Recall: 0.52
+F1: 0.5810055865921788
+
+Author: BradDorfman
+-----
+Hits: 44
+Misses: 56
+Strikes: 23
+Precision: 0.6567164179104478
+Recall: 0.44
+F1: 0.5269461077844311
+
+Author: DarrenSchuettler
+-----
+Hits: 53
+Misses: 47
+Strikes: 41
+Precision: 0.5638297872340425
+Recall: 0.53
+F1: 0.5463917525773196
+
+Author: DavidLawder
+-----
+Hits: 86
+Misses: 14
+Strikes: 142
+Precision: 0.37719298245614036
+Recall: 0.86
+F1: 0.524390243902439
+
+Author: EdnaFernandes
+-----
+Hits: 18
+Misses: 82
+Strikes: 1
+Precision: 0.9473684210526315
+Recall: 0.18
+F1: 0.3025210084033613
+
+Author: EricAuchard
+-----
+Hits: 27
+Misses: 73
+Strikes: 31
+Precision: 0.46551724137931033
+Recall: 0.27
+F1: 0.34177215189873417
+
+Author: FumikoFujisaki
+-----
+Hits: 100
+Misses: 0
+Strikes: 73
+Precision: 0.5780346820809249
+Recall: 1.0
+F1: 0.7326007326007327
+
+Author: GrahamEarnshaw
+-----
+Hits: 76
+Misses: 24
+Strikes: 18
+Precision: 0.8085106382978723
+Recall: 0.76
+F1: 0.7835051546391754
+
+Author: HeatherScoffield
+-----
+Hits: 67
+Misses: 33
+Strikes: 66
+Precision: 0.5037593984962406
+Recall: 0.67
+F1: 0.575107296137339
+
+Author: JaneMacartney
+-----
+Hits: 53
+Misses: 47
+Strikes: 108
+Precision: 0.32919254658385094
+Recall: 0.53
+F1: 0.4061302681992337
+
+Author: JanLopatka
+-----
+Hits: 19
+Misses: 81
+Strikes: 16
+Precision: 0.5428571428571428
+Recall: 0.19
+F1: 0.28148148148148144
+
+Author: JimGilchrist
+-----
+Hits: 72
+Misses: 28
+Strikes: 20
+Precision: 0.782608695652174
+Recall: 0.72
+F1: 0.7499999999999999
+
+Author: JoeOrtiz
+-----
+Hits: 28
+Misses: 72
+Strikes: 7
+Precision: 0.8
+Recall: 0.28
+F1: 0.41481481481481486
+
+Author: JohnMastrini
+-----
+Hits: 62
+Misses: 38
+Strikes: 84
+Precision: 0.4246575342465753
+Recall: 0.62
+F1: 0.5040650406504065
+
+Author: JonathanBirt
+-----
+Hits: 65
+Misses: 35
+Strikes: 11
+Precision: 0.8552631578947368
+Recall: 0.65
+F1: 0.7386363636363636
+
+Author: JoWinterbottom
+-----
+Hits: 91
+Misses: 9
+Strikes: 90
+Precision: 0.5027624309392266
+Recall: 0.91
+F1: 0.6476868327402137
+
+Author: KarlPenhaul
+-----
+Hits: 86
+Misses: 14
+Strikes: 5
+Precision: 0.945054945054945
+Recall: 0.86
+F1: 0.9005235602094239
+
+Author: KeithWeir
+-----
+Hits: 61
+Misses: 39
+Strikes: 21
+Precision: 0.7439024390243902
+Recall: 0.61
+F1: 0.6703296703296703
+
+Author: KevinDrawbaugh
+-----
+Hits: 25
+Misses: 75
+Strikes: 2
+Precision: 0.9259259259259259
+Recall: 0.25
+F1: 0.39370078740157477
+
+Author: KevinMorrison
+-----
+Hits: 57
+Misses: 43
+Strikes: 51
+Precision: 0.5277777777777778
+Recall: 0.57
+F1: 0.5480769230769231
+
+Author: KirstinRidley
+-----
+Hits: 62
+Misses: 38
+Strikes: 69
+Precision: 0.4732824427480916
+Recall: 0.62
+F1: 0.5367965367965368
+
+Author: KouroshKarimkhany
+-----
+Hits: 80
+Misses: 20
+Strikes: 48
+Precision: 0.625
+Recall: 0.8
+F1: 0.7017543859649122
+
+Author: LydiaZajc
+-----
+Hits: 42
+Misses: 58
+Strikes: 1
+Precision: 0.9767441860465116
+Recall: 0.42
+F1: 0.5874125874125874
+
+Author: LynneO'Donnell
+-----
+Hits: 87
+Misses: 13
+Strikes: 70
+Precision: 0.554140127388535
+Recall: 0.87
+F1: 0.6770428015564202
+
+Author: LynnleyBrowning
+-----
+Hits: 97
+Misses: 3
+Strikes: 59
+Precision: 0.6217948717948718
+Recall: 0.97
+F1: 0.7578125
+
+Author: MarcelMichelson
+-----
+Hits: 68
+Misses: 32
+Strikes: 34
+Precision: 0.6666666666666666
+Recall: 0.68
+F1: 0.6732673267326733
+
+Author: MarkBendeich
+-----
+Hits: 27
+Misses: 73
+Strikes: 3
+Precision: 0.9
+Recall: 0.27
+F1: 0.41538461538461546
+
+Author: MartinWolk
+-----
+Hits: 49
+Misses: 51
+Strikes: 15
+Precision: 0.765625
+Recall: 0.49
+F1: 0.5975609756097561
+
+Author: MatthewBunce
+-----
+Hits: 91
+Misses: 9
+Strikes: 12
+Precision: 0.883495145631068
+Recall: 0.91
+F1: 0.896551724137931
+
+Author: MichaelConnor
+-----
+Hits: 52
+Misses: 48
+Strikes: 21
+Precision: 0.7123287671232876
+Recall: 0.52
+F1: 0.6011560693641619
+
+Author: MureDickie
+-----
+Hits: 37
+Misses: 63
+Strikes: 71
+Precision: 0.3425925925925926
+Recall: 0.37
+F1: 0.3557692307692307
+
+Author: NickLouth
+-----
+Hits: 75
+Misses: 25
+Strikes: 27
+Precision: 0.7352941176470589
+Recall: 0.75
+F1: 0.7425742574257426
+
+Author: PatriciaCommins
+-----
+Hits: 68
+Misses: 32
+Strikes: 20
+Precision: 0.7727272727272727
+Recall: 0.68
+F1: 0.7234042553191491
+
+Author: PeterHumphrey
+-----
+Hits: 98
+Misses: 2
+Strikes: 251
+Precision: 0.2808022922636103
+Recall: 0.98
+F1: 0.43652561247216043
+
+Author: PierreTran
+-----
+Hits: 74
+Misses: 26
+Strikes: 59
+Precision: 0.556390977443609
+Recall: 0.74
+F1: 0.6351931330472104
+
+Author: RobinSidel
+-----
+Hits: 73
+Misses: 27
+Strikes: 28
+Precision: 0.7227722772277227
+Recall: 0.73
+F1: 0.7263681592039801
+
+Author: RogerFillion
+-----
+Hits: 87
+Misses: 13
+Strikes: 21
+Precision: 0.8055555555555556
+Recall: 0.87
+F1: 0.8365384615384616
+
+Author: SamuelPerry
+-----
+Hits: 54
+Misses: 46
+Strikes: 27
+Precision: 0.6666666666666666
+Recall: 0.54
+F1: 0.5966850828729282
+
+Author: SarahDavison
+-----
+Hits: 41
+Misses: 59
+Strikes: 37
+Precision: 0.5256410256410257
+Recall: 0.41
+F1: 0.46067415730337075
+
+Author: ScottHillis
+-----
+Hits: 8
+Misses: 92
+Strikes: 12
+Precision: 0.4
+Recall: 0.08
+F1: 0.13333333333333333
+
+Author: SimonCowell
+-----
+Hits: 81
+Misses: 19
+Strikes: 59
+Precision: 0.5785714285714286
+Recall: 0.81
+F1: 0.6749999999999999
+
+Author: TanEeLyn
+-----
+Hits: 0
+Misses: 100
+Strikes: 0
+Precision: 0
+Recall: 0.0
+F1: 0
+
+Author: TheresePoletti
+-----
+Hits: 81
+Misses: 19
+Strikes: 159
+Precision: 0.3375
+Recall: 0.81
+F1: 0.4764705882352942
+
+Author: TimFarrand
+-----
+Hits: 73
+Misses: 27
+Strikes: 8
+Precision: 0.9012345679012346
+Recall: 0.73
+F1: 0.8066298342541436
+
+Author: ToddNissen
+-----
+Hits: 14
+Misses: 86
+Strikes: 19
+Precision: 0.42424242424242425
+Recall: 0.14
+F1: 0.21052631578947373
+
+Author: WilliamKazer
+-----
+Hits: 2
+Misses: 98
+Strikes: 3
+Precision: 0.4
+Recall: 0.02
+F1: 0.03809523809523809
+
+===CLASSIFIER STATISTICS===
+Overall Accuracy: 0.5794
+Overall Correct: 2897
+Overall Incorrect: 2103

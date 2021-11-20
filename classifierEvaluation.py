@@ -23,8 +23,8 @@ def outputStats(matrix, author_stats, overall_correct, overall_incorrect, overal
         matrix_file = open(matrix_file_path, 'w')
     elif classify_type == 'rf':
         file_strings = input_file_path.split('.')[0].split('/')[-1].split('_')[1:]
-        stats_file_path = 'eval_outputs/rf_stats' + str(file_strings[0]) + '_' + str(file_strings[1]) + '_' + str(file_strings[2]) + '.txt'
-        matrix_file_path = 'eval_outputs/rf_matrix' + str(file_strings[0]) + '_' + str(file_strings[1]) + '_' + str(file_strings[2]) + '.csv'
+        stats_file_path = 'eval_outputs/rf_stats_' + str(file_strings[0]) + '_' + str(file_strings[1]) + '_' + str(file_strings[2]) + '.txt'
+        matrix_file_path = 'eval_outputs/rf_matrix_' + str(file_strings[0]) + '_' + str(file_strings[1]) + '_' + str(file_strings[2]) + '.csv'
 
         file = open(stats_file_path, 'w')
         matrix_file = open(matrix_file_path, 'w')

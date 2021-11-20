@@ -29,9 +29,10 @@ def predictRow(trees, row):
 
 def classifyRandomForest(trees, dataframe, class_col):
     actual = list(dataframe[class_col])
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        results = executor.map(predictRow, it.repeat(trees), dataframe.iterrows())
-        predictions = list(results)
+    predictions = [predictRow(trees, row) for row in dataframe.iterrows()]
+    # with concurrent.futures.ProcessPoolExecutor() as executor:
+    #     results = executor.map(predictRow, it.repeat(trees), dataframe.iterrows())
+    #     predictions = list(results)
     return actual, predictions
 
 def createRandomForest(dataframe, attributes, class_col, num_trees, num_attr, num_data_points, tree_thres):

@@ -11,10 +11,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "KNNOutput/classified_okapi_8.csv",
+                "RFOutput/classified_1330_15_1750.csv",
                 "ground_truth.csv"
             ],
-            // "noDebug": true
+            "noDebug": true
         },
         {
             "name": "RFAuthorship.py",
@@ -25,8 +25,8 @@
             "args": [
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
-                "1",
-                "15",
+                "995",
+                "20",
                 "1750"
             ],
             "noDebug": true
@@ -41,7 +41,7 @@
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
                 "okapi",
-                "8"
+                "5"
             ],
             "noDebug": true
         },
