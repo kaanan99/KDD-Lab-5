@@ -52,7 +52,7 @@ def outputStats(matrix, author_stats, overall_correct, overall_incorrect, overal
     file.close()
 
     # ROWS ARE ACTUAL COLUMNS ARE PREDICTED
-    matrix.to_csv(matrix_file, index=True, index_label=False)
+    matrix.to_csv(matrix_file, index=True, index_label='Author')
 
 def calculateStats(dataframe, classify_type, input_file_path):
     overall_correct = 0

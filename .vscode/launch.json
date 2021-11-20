@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "RFOutput/classified_1330_15_1750.csv",
+                "RFOutput/classified_995_20_1750.csv",
                 "ground_truth.csv"
             ],
             "noDebug": true
@@ -25,7 +25,7 @@
             "args": [
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
-                "995",
+                "1",
                 "20",
                 "1750"
             ],
@@ -40,7 +40,7 @@
             "args": [
                 "vectorized/doc_vectors.txt",
                 "vectorized/word_counts.txt",
-                "okapi",
+                "cos",
                 "5"
             ],
             "noDebug": true
